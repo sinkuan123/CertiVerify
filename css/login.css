@@ -1,0 +1,24 @@
+body {
+    background-image: url(../img/sunset.png);
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: center center;
+    background-attachment: fixed;
+}
+
+.whiteholder::placeholder {
+    color: white;
+}
+
+.loginform {
+    background-color: 000000;
+    position: absolute;
+    top: 18%;
+    left: 35%;
+    width: 30%;
+}
+
+.logo {
+    position: absolute;
+    bottom: 0;
+}
