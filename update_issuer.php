@@ -8,17 +8,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
     <link rel="stylesheet" href="css/document.css">
-    <title>View Document</title>
+    <title>Become an Issuer</title>
     <style>
-        .profilepic {
-            position: relative;
-        }
-
-        .profilechange {
-            position: absolute;
-            top: 70%;
-        }
-
         .dndupload-arrow {
             background: url(https://elp.newera.edu.my/moodle/theme/image.php/boost/theme/1681200880/fp/dnd_arrow) center no-repeat;
             width: 100%;
@@ -135,76 +126,50 @@
 <body>
     <div class="container">
         <?php include "nav/navbar.php"; ?>
-        <div class="bgdocument container text-white py-4">
+        <div class="bgdocument container pt-3 pb-5">
             <?php
-            $action = isset($_GET['action']) ? $_GET['action'] : "";
-            $request = isset($_GET['issuer']) ? $_GET['issuer'] : "";
+            include "config/database.php";
+            if ($_FILES) {
+                $file = basename($_FILES["file"]["name"]);
+                $file = htmlspecialchars(strip_tags($file));
+                date_default_timezone_set('Asia/Kuala_Lumpur');
+                $date = date('Y-m-d H:i:s');
+                $error = array();
+                try {
+                    if ($_FILES) {
+                        $file_query = "INSERT INTO update_issuer set user_id=:user_id, document=:file, date=:date";
+                        $file_stmt = $con->prepare($file_query);
+                        $file_stmt->bindParam(":user_id", $_SESSION['id']);
+                        $file_stmt->bindParam(":file", $file);
+                        $file_stmt->bindParam(":date", $date);
+                        if ($_SESSION['status'] == "issuer") {
+                            echo "<div class='alert alert-danger'>You are issuer of our website already.</div>";
+                        } else if (empty($file)) {
+                            echo "<div class='alert alert-danger'>Please Upload your personal information certificate.</div>";
+                        } else if ($file_stmt->execute()) {
+                            $message = "";
+                            foreach ($_POST as $key => $value)
+                                $message .= "Field " . htmlspecialchars($key) . " is " . htmlspecialchars($value) . "<br>";
 
-            if ($request == "requested") {
-                echo "<div class='alert alert-danger'>Your request is in pending status.</div>";
-            }
-            if ($action == "") {
-                if ($_POST) {
-                    try {
-                        $user_update_query = "UPDATE user SET user_name=:user_name, email=:email, phone=:phone WHERE id=:id";
-                        $user_update_stmt = $con->prepare($user_update_query);
-
-                        $user_name = htmlspecialchars(strip_tags($_POST['name']));
-                        $email = htmlspecialchars(strip_tags($_POST['email']));
-                        $phone = htmlspecialchars(strip_tags($_POST['phone']));
-
-                        $user_update_stmt->bindParam(":user_name", $user_name);
-                        $user_update_stmt->bindParam(":email", $email);
-                        $user_update_stmt->bindParam(":phone", $phone);
-                        $user_update_stmt->bindParam(":id", $_SESSION['id']);
-
-                        if ($user_update_stmt->execute()) {
-                            echo "<div class='alert alert-success'>Record was updated.</div>";
-                        } else {
-                            echo "<div class='alert alert-danger'>Unable to update record. Please try again.</div>";
-                        }
-                    } catch (PDOException $exception) {
-                        die('ERROR: ' . $exception->getMessage());
-                    }
-                }
-            } else if ($action == "update_picture") {
-                if ($_FILES) {
-                    try {
-                        $image = !empty($_FILES["image"]["name"])
-                            ? basename($_FILES["image"]["name"])
-                            : "";
-                        $image = htmlspecialchars(strip_tags($image));
-                        $picture_query = "UPDATE user SET image=:image WHERE id=:id";
-                        $picture_stmt = $con->prepare($picture_query);
-                        $picture_stmt->bindParam(":image", $image);
-                        $picture_stmt->bindParam(":id", $_SESSION['id']);
-
-                        if ($picture_stmt->execute()) {
-                            var_dump($image);
-                            echo "<div class='alert alert-success'>Image was updated.</div>";
-                            if ($image) {
+                            mail('limsinkuan0415@e.newera.edu.my', 'sohai', $message);
+                            echo "<div class='alert alert-success m-3'>Record was saved.</div>";
+                            // now, if image is not empty, try to upload the image
+                            if ($file) {
                                 // upload to file to folder
-                                $target_directory = "pictures/";
-                                $target_file = $target_directory . $image;
+                                $target_directory = "personal/";
+                                $target_file = $target_directory . $file;
                                 $file_type = pathinfo($target_file, PATHINFO_EXTENSION);
 
                                 // error message is empty
                                 $file_upload_error_messages = "";
-                                // make sure that file is a real image
-                                $check = getimagesize($_FILES["image"]["tmp_name"]);
-                                if ($check !== false) {
-                                    // submitted file is an image
-                                } else {
-                                    $file_upload_error_messages .= "<div>Submitted file is not an image.</div>";
-                                }
                                 // make sure certain file types are allowed
-                                $allowed_file_types = array("jpg", "jpeg", "png", "gif");
+                                $allowed_file_types = array("pdf", "doc");
                                 if (!in_array($file_type, $allowed_file_types)) {
-                                    $file_upload_error_messages .= "<div>Only JPG, JPEG, PNG, GIF files are allowed.</div>";
+                                    $file_upload_error_messages .= "<div>Only PDF and DOC files are allowed.</div>";
                                 }
                                 // make sure file does not exist
                                 if (file_exists($target_file)) {
-                                    $file_upload_error_messages = "<div>Image already exists. Try to change file name.</div>";
+                                    $file_upload_error_messages = "<div>File name already exists. Try to change file name.</div>";
                                 }
                                 // make sure the 'uploads' folder exists
                                 // if not, create it
@@ -214,7 +179,7 @@
                                 // if $file_upload_error_messages is still empty
                                 if (empty($file_upload_error_messages)) {
                                     // it means there are no errors, so try to upload the file
-                                    if (move_uploaded_file($_FILES["image"]["tmp_name"], $target_file)) {
+                                    if (move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
                                         // it means photo was uploaded
                                     } else {
                                         echo "<div class='alert alert-danger'>";
@@ -223,6 +188,7 @@
                                         echo "</div>";
                                     }
                                 }
+
                                 // if $file_upload_error_messages is NOT empty
                                 else {
                                     // it means there are some errors, so show them to user
@@ -232,73 +198,40 @@
                                     echo "</div>";
                                 }
                             }
+
+                            $_FILES = array();
                         } else {
-                            echo "<div class='alert alert-danger'>Unable to update record. Please try again.</div>";
+                            echo "<div class='alert alert-danger m-3'>Unable to save the record.</div>";
                         }
-                    } catch (PDOException $exception) {
-                        die('ERROR: ' . $exception->getMessage());
                     }
+                } catch (PDOException $exception) {
+                    echo '<div class="alert alert-danger role=alert">' . $exception->getMessage() . '</div>';
                 }
             }
-            if ($action == "") { ?>
-                <h2>My Profile</h2>
-                <div class="text-center">
-                    <form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" enctype="multipart/form-data">
-                        <div class="d-flex justify-content-center align-items-center my-5">
-                            <div class="profilepic">
-                                <?php if ($user['image'] != "") { ?>
-                                    <img src="pictures/<?php echo $user['image']; ?>" alt="" width="358px">
-                                <?php } else { ?>
-                                    <img src="img/bigprofile.png" alt="">
-                                <?php } ?>
-                                <p class="profilechange w-100 text-center">
-                                    <a href="profile.php?action=update_picture" class="link-underline link-light link-underline-opacity-0 link-underline-opacity-50-hover">Change Profile Picture</a>
-                                </p>
-
-                            </div>
 
 
-                            <div class="me-5">
-                                <label for="name" class="form-label my-3">Name:</label><br>
-                                <label for="email" class="form-label my-3">Email:</label><br>
-                                <label for="phone" class="form-label my-3">Phone No:</label><br>
-                                <label for="status" class="form-label my-3">Status:</label>
-                            </div>
-                            <div class="w-50">
-                                <input type="text" name="name" id="name" value="<?php echo $user['user_name'] ?>" class="form-control">
-                                <input type="text" name="email" id="email" value="<?php echo isset($user['email']) ? $user['email'] : "" ?>" class="form-control my-3">
-                                <input type="text" name="phone" id="phone" value="<?php echo isset($user['phone']) ? $user['phone'] : "" ?>" class="form-control my-3">
-                                <input type="text" name="status" id="status" value="<?php echo $user['status']; ?>" class="form-control" readonly>
-                            </div>
+            ?>
+            <div class="container text-white">
+                <h1>Upload Your Personal Certificate</h1>
+                <form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" enctype="multipart/form-data">
+                    <div class="file-drop-area text-center mx-auto my-5 w-75 ">
+                        <div class="dndupload-arrow"></div>
+                        <div class="fileinput">
+                            <span class="fake-btn">Choose file</span>
+                            <span class="file-msg">or drop file here</span>
+                            <input type="file" class="file-input" name="file" id="file" accept=".pdf">
+                            <div class="item-delete"></div>
                         </div>
-                        <input type="submit" class="btn btn-primary" value="Save Changes">
-                        <?php if ($user['status'] == "recipient") { ?>
-                            <a href="become_issuer.php" class="btn btn-primary">Become an issuer</a>
-                        <?php } ?>
-                    </form>
-                </div><?php }
-
-                    if ($action == "update_picture") { ?>
-                <h2>Change Profile Picture</h2>
-                <div class="text-center">
-                    <form action="<?php echo $_SERVER["PHP_SELF"]; ?>?action=update_picture" method="POST" enctype="multipart/form-data">
-                        <div class="file-drop-area text-center mx-auto my-5 w-75 ">
-                            <div class="dndupload-arrow"></div>
-                            <div class="fileinput">
-                                <span class="fake-btn">Choose file</span>
-                                <span class="file-msg">or drop file here</span>
-                                <input type="file" class="file-input" name="image" id="image" accept="image/*">
-                                <div class="item-delete"></div>
-                            </div>
-                        </div>
-                        <input type="submit" class="btn btn-primary" value="Save Changes">
-                    </form>
-                </div>
-
-
-            <?php } ?>
+                    </div>
+                    <div class="text-center">
+                        <input type="submit" class="btn btn-primary px-5 rounded-3" value="Upload">
+                    </div>
+                </form>
+            </div>
         </div>
-        <?php include "nav/footer.php"; ?>
+        <?php
+        include "nav/footer.php";
+        ?>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
     <script>
@@ -334,7 +267,6 @@
             $('.item-delete').css('display', 'none');
         });
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
 </body>
 
 </html>

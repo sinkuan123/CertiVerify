@@ -129,84 +129,107 @@
         <div class="bgdocument container pt-3 pb-5">
             <?php
             include "config/database.php";
-            if ($_FILES) {
-                $file = basename($_FILES["file"]["name"]);
-                $file = htmlspecialchars(strip_tags($file));
-                date_default_timezone_set('Asia/Kuala_Lumpur');
-                $date = date('Y-m-d H:i:s');
-                $error = array();
-                try {
-                    if ($_FILES) {
-                        $file_query = "INSERT INTO file set name=:name, user_id=:user_id, date=:date";
-                        $file_stmt = $con->prepare($file_query);
-                        $file_stmt->bindParam(":name", $file);
-                        $file_stmt->bindParam(":user_id", $_SESSION['id']);
-                        $file_stmt->bindParam(":date", $date);
-                        if (empty($file)) {
-                            echo "<div class='alert alert-danger'>Please Select a file to upload.</div>";
-                        } else if ($file_stmt->execute()) {
-                            echo "<div class='alert alert-success m-3'>Record was saved.</div>";
-                            // now, if image is not empty, try to upload the image
-                            if ($file) {
 
-                                // upload to file to folder
-                                $target_directory = "uploads/";
-                                $target_file = $target_directory . $file;
-                                $file_type = pathinfo($target_file, PATHINFO_EXTENSION);
+            $user_query = "SELECT * FROM user WHERE id=?";
+            $user_stmt = $con->prepare($user_query);
+            $user_stmt->bindParam(1, $_SESSION['id']);
+            $user_stmt->execute();
+            $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
 
-                                // error message is empty
-                                $file_upload_error_messages = "";
-                                // make sure certain file types are allowed
-                                $allowed_file_types = array("pdf", "doc");
-                                if (!in_array($file_type, $allowed_file_types)) {
-                                    $file_upload_error_messages .= "<div>Only PDF and DOC files are allowed.</div>";
-                                }
-                                // make sure file does not exist
-                                if (file_exists($target_file)) {
-                                    $file_upload_error_messages = "<div>File name already exists. Try to change file name.</div>";
-                                }
-                                // make sure the 'uploads' folder exists
-                                // if not, create it
-                                if (!is_dir($target_directory)) {
-                                    mkdir($target_directory, 0777, true);
-                                }
-                                // if $file_upload_error_messages is still empty
-                                if (empty($file_upload_error_messages)) {
-                                    // it means there are no errors, so try to upload the file
-                                    if (move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
-                                        // it means photo was uploaded
-                                    } else {
+            $pending = "pending";
+            $check_query = "SELECT * FROM update_issuer where user_id=:user_id AND status=:status";
+            $check_stmt = $con->prepare($check_query);
+            $check_stmt->bindParam(":user_id", $_SESSION['id']);
+            $check_stmt->bindParam(":status", $pending);
+            $check_stmt->execute();
+            $check = $check_stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (count($check) !== 0) {
+                echo '<script>window.location.assign("profile.php?issuer=requested")</script>';
+            } else {
+                if ($_FILES) {
+                    $file = basename($_FILES["file"]["name"]);
+                    $file = htmlspecialchars(strip_tags($file));
+                    date_default_timezone_set('Asia/Kuala_Lumpur');
+                    $date = date('Y-m-d H:i:s');
+                    $error = array();
+                    try {
+                        if ($_FILES) {
+                            $file_query = "INSERT INTO update_issuer set user_id=:user_id,document=:document, date=:date";
+                            $file_stmt = $con->prepare($file_query);
+                            $file_stmt->bindParam(":user_id", $_SESSION['id']);
+                            $file_stmt->bindParam(":document", $file);
+                            $file_stmt->bindParam(":date", $date);
+                            if (empty($file)) {
+                                echo "<div class='alert alert-danger'>Please Select a file to upload.</div>";
+                            } else if ($file_stmt->execute()) {
+                                echo "<div class='alert alert-success'>Record was saved.</div>";
+                                // now, if image is not empty, try to upload the image
+                                if ($file) {
+                                    $recipient_loop = 1;
+                                    $receipt = "limsinkuan123@gmail.com";
+                                    $subject = $user['user_name'] . "want to become an issuer.";
+                                    $body = '"http://localhost/certiverify/admin_dashboard.php"';
+                                    include "email.php";
+                                    // upload to file to folder
+                                    $target_directory = "uploads/";
+                                    $target_file = $target_directory . $file;
+                                    $file_type = pathinfo($target_file, PATHINFO_EXTENSION);
+
+                                    // error message is empty
+                                    $file_upload_error_messages = "";
+                                    // make sure certain file types are allowed
+                                    $allowed_file_types = array("pdf", "doc");
+                                    if (!in_array($file_type, $allowed_file_types)) {
+                                        $file_upload_error_messages .= "<div>Only PDF and DOC files are allowed.</div>";
+                                    }
+                                    // make sure file does not exist
+                                    if (file_exists($target_file)) {
+                                        $file_upload_error_messages = "<div>File name already exists. Try to change file name.</div>";
+                                    }
+                                    // make sure the 'uploads' folder exists
+                                    // if not, create it
+                                    if (!is_dir($target_directory)) {
+                                        mkdir($target_directory, 0777, true);
+                                    }
+                                    // if $file_upload_error_messages is still empty
+                                    if (empty($file_upload_error_messages)) {
+                                        // it means there are no errors, so try to upload the file
+                                        if (move_uploaded_file($_FILES["file"]["tmp_name"], $target_file)) {
+                                            // it means photo was uploaded
+                                        } else {
+                                            echo "<div class='alert alert-danger'>";
+                                            echo "<div>Unable to upload photo.</div>";
+                                            echo "<div>Update the record to upload photo.</div>";
+                                            echo "</div>";
+                                        }
+                                    }
+
+                                    // if $file_upload_error_messages is NOT empty
+                                    else {
+                                        // it means there are some errors, so show them to user
                                         echo "<div class='alert alert-danger'>";
-                                        echo "<div>Unable to upload photo.</div>";
+                                        echo "<div>{$file_upload_error_messages}</div>";
                                         echo "<div>Update the record to upload photo.</div>";
                                         echo "</div>";
                                     }
                                 }
 
-                                // if $file_upload_error_messages is NOT empty
-                                else {
-                                    // it means there are some errors, so show them to user
-                                    echo "<div class='alert alert-danger'>";
-                                    echo "<div>{$file_upload_error_messages}</div>";
-                                    echo "<div>Update the record to upload photo.</div>";
-                                    echo "</div>";
-                                }
+                                $_FILES = array();
+                            } else {
+                                echo "<div class='alert alert-danger m-3'>Unable to save the record.</div>";
                             }
-
-                            $_FILES = array();
-                        } else {
-                            echo "<div class='alert alert-danger m-3'>Unable to save the record.</div>";
                         }
+                    } catch (PDOException $exception) {
+                        echo '<div class="alert alert-danger role=alert">' . $exception->getMessage() . '</div>';
                     }
-                } catch (PDOException $exception) {
-                    echo '<div class="alert alert-danger role=alert">' . $exception->getMessage() . '</div>';
                 }
             }
 
 
             ?>
             <div class="container text-white">
-                <h1>Document Upload</h1>
+                <h1>Upload Your Personal Certificate</h1>
                 <form action="<?php echo $_SERVER["PHP_SELF"]; ?>" method="POST" enctype="multipart/form-data">
                     <div class="file-drop-area text-center mx-auto my-5 w-75 ">
                         <div class="dndupload-arrow"></div>

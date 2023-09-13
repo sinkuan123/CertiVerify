@@ -7,19 +7,12 @@ try {
     $id = isset($_GET['id']) ? $_GET['id'] :  die('ERROR: Record ID not found.');
 
     // delete query
-    $file_delete_query = "DELETE FROM file WHERE id = ?";
+    $file_delete_query = "DELETE FROM file_issued WHERE id = ?";
     $file_delete_stmt = $con->prepare($file_delete_query);
     $file_delete_stmt->bindParam(1, $id);
 
-    $image_query = "SELECT name from file where id=?";
-    $image_stmt = $con->prepare($image_query);
-    $image_stmt->bindParam(1, $id);
-    $image_stmt->execute();
-    $image = $image_stmt->fetch(PDO::FETCH_ASSOC);
-
 
     if ($file_delete_stmt->execute()) {
-        unlink("uploads/" . $image['name']);
         // redirect to read records page and
         // tell the user record was deleted
         header('Location: document_view.php?action=deleted');

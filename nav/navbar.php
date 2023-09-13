@@ -31,10 +31,10 @@ $user = $user_stmt->fetch(PDO::FETCH_ASSOC);
                     <a class="nav-link" href="?logout=true">Log Out</a>
                 </li>
                 <li class="nav-item m-auto mx-3">
-                    <?php if (isset($user['image'])) { ?>
+                    <?php if ($user['image'] != "") { ?>
                         <a class="nav-link" href="profile.php"><img src="pictures/<?php echo $user['image']; ?>" alt="" width="74px"></a>
                     <?php } else { ?>
-                        <a class="nav-link" href="profile.php"><img src="img/profile.png" alt=""></a>
+                        <a class="nav-link" href="profile.php"><img src="img/profile.png" alt="logo"></a>
                     <?php } ?>
                 </li>
             </ul>

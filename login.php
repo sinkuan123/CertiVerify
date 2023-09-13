@@ -38,12 +38,16 @@ if (isset($_SESSION['id'])) {
                 $login_stmt->bindParam(1, $username);
                 $login_stmt->execute();
                 $login = $login_stmt->fetch(PDO::FETCH_ASSOC);
-
+                var_dump($login['status']);
                 if ($login) {
                     if (password_verify($password, $login['password'])) {
                         $_SESSION['id'] = $login['id'];
                         $_SESSION['status'] = $login['status'];
-                        header("Location: home.php");
+                        if ($login['status'] === "admin") {
+                            header("Location: admin_dashboard.php");
+                        } else {
+                            header("Location: home.php");
+                        }
                         exit();
                     } else {
                         $password_input_err = "Incorrect Password";
